@@ -1,0 +1,71 @@
+# https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-go
+name: Go Build
+
+on:
+  push:
+    branches: [ "main" ]
+    tags: ["v*"]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+#  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: mukkak/example-service
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.21.x'
+
+    - name: Test
+      run: make test
+
+    - name: Build
+      run: make build
+
+    - name: Upload Build Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: dist
+        path: dist
+
+  docker:
+    name: Build
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    steps:
+    - name: Build Image
+      run: docker build . --file Dockerfile --tag $IMAGE_NAME --label "GITHUB_RUN_ID=${GITHUB_RUN_ID}"
+
+    - name: Registry Login
+      run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin
+
+    - name: Push image
+      run: |
+        IMAGE_ID=ghcr.io/$IMAGE_NAME
+
+        # This changes all uppercase characters to lowercase.
+        IMAGE_ID=$(echo $IMAGE_ID | tr '[A-Z]' '[a-z]')
+
+        # This strips the git ref prefix from the version.
+        IMAGE_VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+
+        # This strips the "v" prefix from the tag name.
+        [[ "${{ github.ref }}" == "refs/tags/"* ]] && IMAGE_VERSION=$(echo $IMAGE_VERSION | sed -e 's/^v//')
+
+        # This uses the Docker `latest` tag convention.
+        [ "$IMAGE_VERSION" == "main" ] && IMAGE_VERSION=latest
+
+        echo IMAGE="$IMAGE_ID:${IMAGE_VERSION}"
+        docker tag $IMAGE_NAME $IMAGE_ID:$IMAGE_VERSION
+        docker push $IMAGE_ID:$IMAGE_VERSION

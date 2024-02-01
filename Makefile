@@ -1,13 +1,10 @@
 BUILD_DIR=dist
-CLIENT_NAME=example
 SERVER_NAME=example-server
+CLIENT_NAME=example
 
-.PHONY: all tidy build test run clean
+.PHONY: all build test docker run tidy clean
 
 all: build test
-
-tidy:
-	go mod tidy
 
 build:
 	mkdir -p ${BUILD_DIR}
@@ -17,8 +14,14 @@ build:
 test:
 	go test -v ./...
 
+docker:
+	docker build -t mukkak/example-service:latest .
+
 run:
-	go run .
+	go run ./cmd/server/main.go
+
+tidy:
+	go mod tidy
 
 clean:
 	go clean
