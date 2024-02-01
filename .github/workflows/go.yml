@@ -38,7 +38,7 @@ jobs:
         path: dist
 
   docker:
-    name: Build
+    name: Docker
     runs-on: ubuntu-latest
     permissions:
       packages: write

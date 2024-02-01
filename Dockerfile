@@ -10,7 +10,7 @@ COPY . .
 RUN CGO_ENABLED=0 go build -o /go/bin/server ./cmd/server/main.go
 
 EXPOSE 8080
-CMD ["/go/bin/service"]
+CMD ["/go/bin/server"]
 
 FROM scratch
 
